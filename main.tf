@@ -79,17 +79,13 @@ resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
   role            = aws_iam_role.agency_role.name
 }
 
-data "jenkins_credentials" "jenkins_ssh_key" {
-  credential_id = "MY-SSH-KEY-CREDENTIAL"
-}
 
 # Create an SSH key for the SFTP user
 resource "aws_transfer_ssh_key" "sftp_user_ssh_key" {
   server_id = aws_transfer_server.sftp.id
   user_name = aws_transfer_user.sftp_user.user_name
-  body = data.jenkins_credentials.jenkins_ssh_key.secret
+  body = "${var.MY-SSH-KEY-CREDENTIAL}"
 }
-
 # Configure the SFTP user with the SSH key
 resource "aws_transfer_user" "sftp_user" {
   server_id          = aws_transfer_server.sftp.id
