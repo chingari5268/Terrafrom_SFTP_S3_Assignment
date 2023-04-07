@@ -23,18 +23,17 @@ pipeline {
         sh 'terraform init'
       }
     }
-	
-	Stage('Terraform Validate') {
-	  steps {
+
+    stage('Terraform Validate') {
+      steps {
         sh 'terraform validate'
       }
     }
-
+	  
     stage('Terraform Plan') {
       steps {
         sh 'terraform plan'
       }
     }
-
   }
 }
