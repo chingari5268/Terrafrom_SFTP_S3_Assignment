@@ -9,6 +9,11 @@ variable "agency" {
   default = "agency-a"
 }
 
+# Declare the variable for the SSH key credential
+variable "MY_SSH_KEY_CREDENTIAL" {
+  type = string
+}
+
 # Create the SFTP server
 resource "aws_transfer_server" "sftp" {
   identity_provider_type = "SERVICE_MANAGED"
