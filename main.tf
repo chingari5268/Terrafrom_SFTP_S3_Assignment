@@ -84,7 +84,7 @@ resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
 resource "aws_transfer_ssh_key" "sftp_user_ssh_key" {
   server_id = aws_transfer_server.sftp.id
   user_name = aws_transfer_user.sftp_user.user_name
-  body = "${var.MY_SSH_KEY_CREDENTIAL}"
+  body      = file("/home/ubuntu/key/Authentication/jenkinskey.pem")
 }
 
 # Configure the SFTP user with the SSH key
@@ -105,9 +105,6 @@ output "agency_sftp_server_url" {
   value = aws_transfer_server.sftp.endpoint
 }
 
-output "login_command" {
-  value = "sftp -i /path/to/key.pem ${aws_transfer_user.sftp_user.user_name}@${aws_transfer_server.sftp.endpoint}"
-}
 
 # Configure the CloudWatch metric alarm to monitor the S3 bucket for each agency
 resource "aws_cloudwatch_metric_alarm" "missing_data_alarm" {
@@ -116,7 +113,7 @@ resource "aws_cloudwatch_metric_alarm" "missing_data_alarm" {
   evaluation_periods = 1
   metric_name     = "NumberOfObjects"
   namespace       = "AWS/S3"
-  period          = 300 # for every 5 minutes
+  period          = 86400 # 24 hours
   statistic       = "Average"
   threshold       = 1
   alarm_description = "Alert if the number of objects in the S3 bucket for ${var.agency} is less than expected"
