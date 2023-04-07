@@ -1,18 +1,3 @@
-+ terraform plan
-[0m[1mvar.MY_SSH_KEY_CREDENTIAL[0m
-  [1mEnter a value:[0m [0m[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mNo value for required variable[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main.tf line 13:
-[31m│[0m [0m  13: [4mvariable "MY_SSH_KEY_CREDENTIAL"[0m {[0m
-[31m│[0m [0m
-[31m│[0m [0mThe root module input variable "MY_SSH_KEY_CREDENTIAL" is not set, and has
-[31m│[0m [0mno default value. Use a -var or -var-file command line argument to provide
-[31m│[0m [0ma value for this variable.
-[31m╵[0m[0m
-
-From below code i am reciving the above error when running it from jenkins. Please provide propper code and fix it.
-
 # Configure the AWS provider
 provider "aws" {
   region = "eu-west-1"
