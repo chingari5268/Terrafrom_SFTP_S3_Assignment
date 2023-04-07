@@ -1,3 +1,18 @@
++ terraform plan
+[0m[1mvar.MY_SSH_KEY_CREDENTIAL[0m
+  [1mEnter a value:[0m [0m[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mNo value for required variable[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main.tf line 13:
+[31m│[0m [0m  13: [4mvariable "MY_SSH_KEY_CREDENTIAL"[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mThe root module input variable "MY_SSH_KEY_CREDENTIAL" is not set, and has
+[31m│[0m [0mno default value. Use a -var or -var-file command line argument to provide
+[31m│[0m [0ma value for this variable.
+[31m╵[0m[0m
+
+From below code i am reciving the above error when running it from jenkins. Please provide propper code and fix it.
+
 # Configure the AWS provider
 provider "aws" {
   region = "eu-west-1"
@@ -10,8 +25,9 @@ variable "agency" {
 }
 
 # Declare the variable for the SSH key credential
-variable "MY_SSH_KEY_CREDENTIAL" {
-  type = string
+variable "sftp_user_ssh_key_credential_id" {
+  type    = string
+  default = "MY_SSH_KEY_CREDENTIAL"
 }
 
 # Create the SFTP server
@@ -91,6 +107,7 @@ resource "aws_transfer_ssh_key" "sftp_user_ssh_key" {
   user_name = aws_transfer_user.sftp_user.user_name
   body = "${var.MY_SSH_KEY_CREDENTIAL}"
 }
+
 # Configure the SFTP user with the SSH key
 resource "aws_transfer_user" "sftp_user" {
   server_id          = aws_transfer_server.sftp.id
