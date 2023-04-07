@@ -8,7 +8,6 @@ pipeline {
   environment {
     AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-    MY_SSH_KEY_CREDENTIAL = credentials('MY_SSH_KEY_CREDENTIAL')
     AWS_DEFAULT_REGION = 'eu-west-1'
   }
 
