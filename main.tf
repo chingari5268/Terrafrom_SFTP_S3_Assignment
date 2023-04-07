@@ -9,12 +9,6 @@ variable "agency" {
   default = "agency-a"
 }
 
-# Declare the variable for the SSH key credential
-variable "sftp_user_ssh_key_credential_id" {
-  type    = string
-  default = "MY_SSH_KEY_CREDENTIAL"
-}
-
 # Create the SFTP server
 resource "aws_transfer_server" "sftp" {
   identity_provider_type = "SERVICE_MANAGED"
@@ -144,4 +138,3 @@ resource "aws_sns_topic_subscription" "sre_email_subscription" {
   protocol  = "email"
   endpoint  = "chethan7119982@gmail.com"
 }
-
