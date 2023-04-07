@@ -79,12 +79,15 @@ resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
   role            = aws_iam_role.agency_role.name
 }
 
+data "jenkins_credentials" "jenkins_ssh_key" {
+  credential_id = "MY-SSH-KEY-CREDENTIAL"
+}
 
 # Create an SSH key for the SFTP user
 resource "aws_transfer_ssh_key" "sftp_user_ssh_key" {
   server_id = aws_transfer_server.sftp.id
   user_name = aws_transfer_user.sftp_user.user_name
-  body      = file("/home/ubuntu/key/Authentication/jenkinskey.pem")
+  body = data.jenkins_credentials.jenkins_ssh_key.secret
 }
 
 # Configure the SFTP user with the SSH key
@@ -105,6 +108,9 @@ output "agency_sftp_server_url" {
   value = aws_transfer_server.sftp.endpoint
 }
 
+output "login_command" {
+  value = "sftp -i /path/to/key.pem ${aws_transfer_user.sftp_user.user_name}@${aws_transfer_server.sftp.endpoint}"
+}
 
 # Configure the CloudWatch metric alarm to monitor the S3 bucket for each agency
 resource "aws_cloudwatch_metric_alarm" "missing_data_alarm" {
@@ -135,3 +141,4 @@ resource "aws_sns_topic_subscription" "sre_email_subscription" {
   protocol  = "email"
   endpoint  = "chethan7119982@gmail.com"
 }
+
