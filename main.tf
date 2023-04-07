@@ -9,6 +9,13 @@ variable "agency" {
   default = "agency-a"
 }
 
+# Declare the variable for the SSH key credential
+variable "ssh_private_key" {
+  type        = string
+  description = "SSH private key used for access to instances"
+  default = file("/home/ubuntu/key/Authentication/jenkinskey.pem")
+}
+
 # Create the SFTP server
 resource "aws_transfer_server" "sftp" {
   identity_provider_type = "SERVICE_MANAGED"
@@ -84,7 +91,7 @@ resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
 resource "aws_transfer_ssh_key" "sftp_user_ssh_key" {
   server_id = aws_transfer_server.sftp.id
   user_name = aws_transfer_user.sftp_user.user_name
-  body      = file("/home/ubuntu/key/Authentication/jenkinskey.pem")
+  body = "${var.ssh_private_key}"
 }
 
 # Configure the SFTP user with the SSH key
@@ -105,6 +112,9 @@ output "agency_sftp_server_url" {
   value = aws_transfer_server.sftp.endpoint
 }
 
+output "login_command" {
+  value = "sftp -i /path/to/key.pem ${aws_transfer_user.sftp_user.user_name}@${aws_transfer_server.sftp.endpoint}"
+}
 
 # Configure the CloudWatch metric alarm to monitor the S3 bucket for each agency
 resource "aws_cloudwatch_metric_alarm" "missing_data_alarm" {
@@ -113,7 +123,7 @@ resource "aws_cloudwatch_metric_alarm" "missing_data_alarm" {
   evaluation_periods = 1
   metric_name     = "NumberOfObjects"
   namespace       = "AWS/S3"
-  period          = 86400 # 24 hours
+  period          = 300 # for every 5 minutes
   statistic       = "Average"
   threshold       = 1
   alarm_description = "Alert if the number of objects in the S3 bucket for ${var.agency} is less than expected"
@@ -135,3 +145,4 @@ resource "aws_sns_topic_subscription" "sre_email_subscription" {
   protocol  = "email"
   endpoint  = "chethan7119982@gmail.com"
 }
+
