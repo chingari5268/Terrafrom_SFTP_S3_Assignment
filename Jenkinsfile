@@ -8,6 +8,7 @@ pipeline {
   environment {
     AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+	MY_SSH_KEY_CREDENTIAL = credentials('MY_SSH_KEY_CREDENTIAL')
     AWS_DEFAULT_REGION = 'eu-west-1'
   }
 
@@ -32,7 +33,9 @@ pipeline {
 	  
     stage('Terraform Plan') {
       steps {
-        sh 'terraform plan'
+        withCredentials([string(credentialsId: 'MY_SSH_KEY_CREDENTIAL', variable: 'SSH_KEY')]) {
+          sh 'terraform plan -var "ssh_key_file_content=${SSH_KEY}"'
+        }
       }
     }
   }
