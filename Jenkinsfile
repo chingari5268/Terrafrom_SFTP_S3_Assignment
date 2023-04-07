@@ -32,7 +32,7 @@ pipeline {
 	  
     stage('Terraform Plan') {
       steps {
-        withCredentials([string(credentialsId: 'MY_SSH_KEY_CREDENTIAL', variable: 'SSH_KEY')]) {
+        withCredentials([string(credentialsId: 'SSH_PRIVATE_KEY', variable: 'SSH_KEY')]) {
           sh 'terraform plan -var "ssh_key_file_content=${SSH_KEY}"'
         }
       }
