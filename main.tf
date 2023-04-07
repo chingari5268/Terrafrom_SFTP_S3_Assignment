@@ -10,10 +10,9 @@ variable "agency" {
 }
 
 # Declare the variable for the SSH key credential
-variable "ssh_private_key" {
-  type        = string
-  description = "SSH private key used for access to instances"
-  default = file("/home/ubuntu/key/Authentication/jenkinskey.pem")
+variable "ssh_key_file_content" {
+  type    = string
+  sensitive = true
 }
 
 # Create the SFTP server
@@ -91,7 +90,7 @@ resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
 resource "aws_transfer_ssh_key" "sftp_user_ssh_key" {
   server_id = aws_transfer_server.sftp.id
   user_name = aws_transfer_user.sftp_user.user_name
-  body = "${var.ssh_private_key}"
+  body      = var.ssh_key_file_content
 }
 
 # Configure the SFTP user with the SSH key
