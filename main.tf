@@ -9,12 +9,6 @@ variable "agencies" {
   default = ["agency-a", "agency-b"]
 }
 
-# Declare the variable for the SSH key credential
-variable "ssh_key_file_content" {
-  type      = string
-  sensitive = true
-}
-
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
