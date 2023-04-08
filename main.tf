@@ -14,7 +14,7 @@ resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
   bucket = "${var.agencies[count.index]}-bucket"
   tags = {
-    Name = "${var.agencies}-bucket"
+    Name = "${var.agencies[count.index]}-bucket"
   }
 }
 
