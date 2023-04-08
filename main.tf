@@ -3,12 +3,6 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-# Define the agency names
-variable "agencies" {
-  type    = list(string)
-  default = ["agency-a", "agency-b"]
-}
-
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
@@ -189,20 +183,6 @@ resource "aws_transfer_user" "sftp_user" {
   tags = {
     Name = "${var.agencies[count.index]}-sftp-user"
   }
-}
-
-# Output the values required to connect the SFTP user to the server
-output "agency_sftp_server_id" {
-  value = [for i in range(length(var.agencies)):
-             aws_transfer_server.sftp[i].id
-          ]
-}
-
-# Print the endpoint URL of the SFTP server for each agency
-output "agency_sftp_server_url" {
-  value = [for i in range(length(var.agencies)) :
-             aws_transfer_server.sftp[i].endpoint
-  ]
 }
 
 # Configure the CloudWatch metric alarm to monitor the S3 bucket for each agency
