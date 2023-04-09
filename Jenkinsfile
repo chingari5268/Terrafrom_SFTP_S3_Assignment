@@ -26,8 +26,8 @@ pipeline {
       steps {
         script {
           def workspaceName = "${params.agencyName}"
-          sh "terraform workspace new $agencyName"
-          sh "terraform workspace select $agencyName"
+          sh "terraform workspace new $workspaceName"
+          sh "terraform workspace select $workspaceName"
         } 
       }
     }
@@ -35,7 +35,7 @@ pipeline {
     stage('Terraform Plan') {
       steps {
         sh 'terraform init'
-        sh "terraform plan -var agencies=${params.agencyName} -out=tfplan"
+        sh "terraform plan -var agencies=$workspaceName -out=tfplan"
       }
     }
   }
