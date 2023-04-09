@@ -17,15 +17,22 @@ pipeline {
         git branch: 'main', url: 'https://github.com/chingari5268/Terrafrom_SFTP_S3_Assignment.git'
       }
     }
-  
-    stage('Workspace') {
-      steps {
+	
+	stage('Workspace') {
+	  steps {
         script {
-          def workspaceName = sh(script: "cat variable.tf | grep 'agencies' | awk -F'[\"\"]' '{print $2}'", returnStdout: true).trim()
-          sh "terraform workspace new $workspaceName"
-          sh "terraform workspace select $workspaceName"
-        }
+        def workspaceName = "${file('variable.tf')}".replaceAll("[\\n\\t\\r]", "").match(/workspace_name\s+=\s+"(.+?)"/)[1]
+        sh "terraform workspace new $workspaceName"
+        sh "terraform workspace select $workspaceName"
+        } 
       }
     }
+
+	stage('Terraform Plan') {
+	  steps {
+      sh 'terraform init'
+      sh "terraform plan -var-file=variable.tf -out=tfplan"
+	  }
+	}
   }
 }
