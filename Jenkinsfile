@@ -18,21 +18,21 @@ pipeline {
       }
     }
 	
-	stage('Workspace') {
-	  steps {
+    stage('Workspace') {
+      steps {
         script {
-        def workspaceName = "${file('variable.tf')}".replaceAll("[\\n\\t\\r]", "").match(/workspace_name\s+=\s+"(.+?)"/)[1]
+        def workspaceName = ${var.agencies}
         sh "terraform workspace new $workspaceName"
         sh "terraform workspace select $workspaceName"
         } 
       }
     }
 
-	stage('Terraform Plan') {
-	  steps {
+    stage('Terraform Plan') {
+      steps {
       sh 'terraform init'
-      sh "terraform plan -var-file=variable.tf -out=tfplan"
-	  }
-	}
+      sh "terraform plan -var agencies=${var.agencies} -out=tfplan"
+      }
+    }
   }
 }
