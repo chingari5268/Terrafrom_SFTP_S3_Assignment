@@ -21,24 +21,10 @@ pipeline {
     stage('Workspace') {
       steps {
         script {
-            def workspaceName = terraform.workspace()
-            def agencies = "${terraform.workspace_dir}/variable.tf"
-            def agencyList = readJSON file: agencies
-            for (agency in agencyList.agencies) {
-              if (agency == workspaceName) {
-                return
-              }
-            }
-            sh "terraform workspace new $workspaceName"
-            sh "terraform workspace select $workspaceName"
+          def workspaceName = sh(script: "cat variable.tf | grep 'agencies' | awk -F'[\"\"]' '{print $2}'", returnStdout: true).trim()
+          sh "terraform workspace new $workspaceName"
+          sh "terraform workspace select $workspaceName"
         }
-      }
-    }
-    
-    stage('Plan') {
-      steps {
-        sh 'terraform init'
-        sh 'terraform plan'
       }
     }
   }
