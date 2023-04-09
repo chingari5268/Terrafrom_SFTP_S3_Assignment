@@ -20,28 +20,23 @@ pipeline {
   
     stage('Workspace') {
       steps {
-        withTerraform(variables: [
-            [$class: 'FileBinding', variable: 'var_file', terraformFile: 'variable.tf']
-          ]) {
+        script {
+          for (agency_name in var.agencies) {
             sh "terraform init -var-file=${var_file}"
-            sh "terraform workspace new $workspaceName" // create the workspace if it doesn't exist
-            sh "terraform workspace select $workspaceName" // select the workspace
-          }
-      }
-    }
-
-  
-    stage('Terraform Plan') {
-      steps {
-        withTerraform(variables: [
-            [$class: 'FileBinding', variable: 'var_file', terraformFile: 'variable.tf'],
-            [$class: 'StringBinding', variable: 'agency_name', defaultValue: '', description: 'Enter the name of the agency']
-          ]) {
-            sh "terraform init -var-file=${var_file}"
-            sh "terraform workspace select $workspaceName" // select the workspace
-            sh "terraform plan -var-file=${var_file} -var 'agencies=${agency_name}' -out=tfplan"
+            sh "terraform workspace new $agency_name || true" // create the workspace if it doesn't exist
+            sh "terraform workspace select $agency_name" // select the workspace
           }
         }
       }
-   }
+	} 
+	stage('	Terraform Plan') {
+      steps {
+        script {
+          for (agency_name in var.agencies) {
+            sh "terraform plan -var-file=${var_file} -var 'agencies=${agency_name}' -out=tfplan-${agency_name}"
+          }
+        }
+      }  
+    }
+  }
 }
