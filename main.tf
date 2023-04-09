@@ -40,7 +40,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
   }
 }
 
-
 # Enable SSE for each S3 bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "agency_bucket_sse" {
   bucket = aws_s3_bucket.agency_bucket.id
@@ -60,17 +59,6 @@ resource "aws_s3_bucket_versioning" "agency_bucket_versioning" {
     status = "Enabled"
   }
 }
-
-# Output the S3 bucket ARN
-output "s3_bucket_arn" {
-  value = aws_s3_bucket.agency_bucket.arn
-}
-
-# Output the S3 bucket name
-output "s3_bucket_name" {
-  value = aws_s3_bucket.agency_bucket.id
-}
-
 
 # Create the IAM roles and policies for each agency
 resource "aws_iam_role" "agency_role" {
