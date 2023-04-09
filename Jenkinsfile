@@ -1,6 +1,10 @@
 pipeline {
   agent any
   
+  parameters {
+    string(name: 'workspaceName', description: 'Name of the Terraform workspace')
+  }
+  
   tools {
     terraform 'Jenkins-terraform'
   }
@@ -21,17 +25,17 @@ pipeline {
     stage('Workspace') {
       steps {
         script {
-        def workspaceName = ${var.agencies}
-        sh "terraform workspace new $workspaceName"
-        sh "terraform workspace select $workspaceName"
+          def workspaceName = "${params.agencyName}"
+          sh "terraform workspace new $agencyName"
+          sh "terraform workspace select $agencyName"
         } 
       }
     }
 
     stage('Terraform Plan') {
       steps {
-      sh 'terraform init'
-      sh "terraform plan -var agencies=${var.agencies} -out=tfplan"
+        sh 'terraform init'
+        sh "terraform plan -var agencies=${params.agencyName} -out=tfplan"
       }
     }
   }
