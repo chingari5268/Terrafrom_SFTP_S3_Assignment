@@ -21,7 +21,7 @@ pipeline {
     stage('Workspace') {
       steps {
         script {
-          for (agency_name in "${var.agencies}") {
+          for (agency_name in var.agencies) {
             sh "terraform init -var-file=${var_file}"
             sh "terraform workspace new $agency_name || true" // create the workspace if it doesn't exist
             sh "terraform workspace select $agency_name" // select the workspace
@@ -33,7 +33,7 @@ pipeline {
     stage('Terraform Plan') {
       steps {
         script {
-          for (agency_name in "${var.agencies}") {
+          for (agency_name in var.agencies) {
             sh "terraform plan -var-file=${var_file} -var 'agencies=[\"${agency_name}\"]' -out=tfplan-${agency_name}"
           }
         }
