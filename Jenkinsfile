@@ -39,8 +39,11 @@ pipeline {
     stage('Destroy Infrastructure') {
       steps {
         script {
-          def response = input message: 'Do you really want to destroy the infrastructure?', parameters: [[$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Type Yes to confirm destruction', name: 'Yes or No']]
-          if (response == true) {
+            def destroy = input(
+            message: 'Do you want to destroy the resources? (yes/no)',
+            parameters: [string(name: 'Destroy', defaultValue: 'no')],
+          )
+          if (destroy == 'yes') {
             sh 'terraform destroy -auto-approve'
           } else {
             echo 'The infrastructure will not be destroyed'
