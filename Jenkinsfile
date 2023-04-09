@@ -21,7 +21,7 @@ pipeline {
     stage('Workspace') {
       steps {
         script {
-          def workspaceName = "${var.workspaceName}"
+          def workspaceName = "${workspaceName}"
           sh "terraform workspace new $workspaceName"
           sh "terraform workspace select $workspaceName"
         }
