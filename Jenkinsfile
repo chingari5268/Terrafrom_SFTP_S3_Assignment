@@ -26,7 +26,7 @@ pipeline {
         
         stage('Terraform Plan') {
             steps {
-                sh "terraform plan -var-file=variables.tf -var 'agencies=$agency_name' -out=tfplan-$agency_name"
+                sh "terraform plan -var-file=variables.tf -var 'agencies=$agencyname' -out=tfplan-$agencyname"
             }
         }
     }
