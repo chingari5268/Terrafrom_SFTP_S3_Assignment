@@ -3,12 +3,6 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-# Define the agency names
-variable "agencies" {
-  type    = string
-  default = "agency-a"
-}
-
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   bucket = "${var.agencies}-bucket"
