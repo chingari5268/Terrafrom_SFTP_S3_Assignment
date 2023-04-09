@@ -2,7 +2,7 @@ pipeline {
   agent any
   
   tools {
-        terraform 'Jenkins-terraform'
+    terraform 'Jenkins-terraform'
   }
     
   environment {
@@ -32,7 +32,14 @@ pipeline {
 	  
     stage('Terraform Plan') {
       steps {
-          sh 'terraform plan -out=tfplan'
+        sh 'terraform plan -out=tfplan'
+      }
+    }
+
+    stage('Destroy Infrastructure') {
+      steps {
+        input message: 'Do you really want to destroy the infrastructure?', ok: 'Destroy!'
+        sh 'terraform destroy -auto-approve'
       }
     }
   }
