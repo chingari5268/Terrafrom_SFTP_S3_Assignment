@@ -12,10 +12,9 @@ pipeline {
   }
 
   stages {
-    def var_file = 'variable.tf'
-  
     stage('Checkout') {
       steps {
+        def var_file = 'variable.tf'
         git branch: 'main', url: 'https://github.com/chingari5268/Terrafrom_SFTP_S3_Assignment.git'
       }
     }
@@ -23,7 +22,7 @@ pipeline {
     stage('Workspace') {
       steps {
         script {
-          for (agency_name in agencies) {
+          for (agency_name in "${var.agencies}") {
             sh "terraform init -var-file=${var_file}"
             sh "terraform workspace new $agency_name || true" // create the workspace if it doesn't exist
             sh "terraform workspace select $agency_name" // select the workspace
@@ -35,7 +34,7 @@ pipeline {
     stage('Terraform Plan') {
       steps {
         script {
-          for (agency_name in agencies) {
+          for (agency_name in "${var.agencies}") {
             sh "terraform plan -var-file=${var_file} -var 'agencies=[\"${agency_name}\"]' -out=tfplan-${agency_name}"
           }
         }
