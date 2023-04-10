@@ -148,24 +148,17 @@ resource "aws_transfer_server" "sftp" {
   force_destroy = true
 }
 
-# Create an SFTP user for each agency with public key authentication
+# Create an SFTP user for each agency and assign home directory mappings
 resource "aws_transfer_user" "sftp_user" {
-  count           = length(var.agencies)
-  server_id       = aws_transfer_server.sftp[count.index].id
-  user_name       = "${var.agencies[count.index]}-user"
-  home_directory  = "/${var.agencies[count.index]}-bucket"
-  role            = aws_iam_role.agency_role[count.index].arn
+  count       = length(var.agencies)
+  server_id   = aws_transfer_server.sftp[count.index].id
+  user_name   = "${var.agencies[count.index]}-user"
+  role        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.sftp_role_name}"
+  home_directory = "/${var.agencies[count.index]}"
 
   home_directory_mappings {
-    entry {
-      home_directory = "/${var.agencies[count.index]}-bucket"
-      type           = "LOGICAL"
-      arn            = aws_s3_bucket.sftp_bucket[count.index].arn
-    }
-  }
-
-  tags = {
-    Name = "${var.agencies[count.index]}-sftp-user"
+    entry = "/"
+    target = "/${var.agencies[count.index]}"
   }
 }
 
