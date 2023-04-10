@@ -77,9 +77,19 @@ data "aws_region" "current" {
 
 # Create a VPC endpoint for the SFTP server
 resource "aws_vpc_endpoint" "sftp_vpc_endpoint" {
-  count       = length(var.agencies)
-  vpc_id      = aws_vpc.sftp_vpc.id
-  service_name = "com.amazonaws.${data.aws_region.current.name}.transfer.server"
+  count             = length(var.agencies)
+  vpc_id            = aws_vpc.sftp_vpc.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.transfer.server"
+  vpc_endpoint_type = "Interface"
+
+  # Associate the endpoint with the private subnets
+  subnet_ids = [
+    aws_subnet.private_subnet.id
+  ]
+
+  security_group_ids = [
+    aws_security_group.sftp_security_group.id
+  ]
 }
 
 # Create the IAM roles and policies for each agency
