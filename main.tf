@@ -56,32 +56,27 @@ resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
 
 # Add bucket policy to restrict public access
 resource "aws_s3_bucket_policy" "agency_bucket_policy" {
-  count  = length(var.agencies)
+  count = length(var.agencies)
   bucket = aws_s3_bucket.agency_bucket[count.index].id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-     {
-        Sid = "AllowTransferUserAccess"
+      {
         Effect = "Allow"
         Principal = {
-           AWS =  "${aws_transfer_user.sftp_user[count.index].arn}"
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/aws_transfer_user/${aws_transfer_user.sftp_user[count.index].name}"
         }
         Action = [
           "s3:GetObject",
-          "s3:ListBucket",
-          "s3:PutObject" # Add PutObject action to allow the user to upload objects
+          "s3:PutObject",
+          "s3:DeleteObject"
         ]
-        Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}",
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
-        ]
+        Resource = "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
       }
     ]
   })
 }
-
 
 # Enable SSE for each S3 bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "agency_bucket_sse" {
