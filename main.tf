@@ -121,7 +121,9 @@ resource "aws_transfer_user" "sftp_user" {
         Sid       = "AllowS3Uploads"
         Effect    = "Allow"
         Action    = [
-          "s3:PutObject"
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
         ]
         Resource  = [
           "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
