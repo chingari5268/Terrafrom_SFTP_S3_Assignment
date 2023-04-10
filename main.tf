@@ -83,7 +83,7 @@ resource "aws_vpc_endpoint" "sftp_vpc_endpoint" {
 
   # Associate the endpoint with the private subnets
   subnet_ids = [
-    aws_subnet.private_subnets.id
+    aws_subnet.private_subnet.id
   ]
 }
 
