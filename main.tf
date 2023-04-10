@@ -26,7 +26,7 @@ resource "aws_subnet" "private_subnets" {
   count = 3
   cidr_block = "10.0.${count.index + 1}.0/24"
   vpc_id = aws_vpc.sftp_vpc.id
-  availability_zone = "eu-west-1${count.index + 1}a"
+  availability_zone = "eu-west-${count.index + 1}a"
   tags = {
     Name = "sftp-private-subnet-${count.index + 1}"
   }
