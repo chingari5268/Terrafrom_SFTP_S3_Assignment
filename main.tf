@@ -3,94 +3,47 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-# Create the VPC
-resource "aws_vpc" "sftp_vpc" {
-  cidr_block = "10.0.0.0/16"
+# Create the S3 bucket for each agency
+resource "aws_s3_bucket" "agency_bucket" {
+  count  = length(var.agencies)
+  bucket = "${var.agencies[count.index]}-bucket"
+
   tags = {
-    Name = "sftp-vpc"
+    Name = "${var.agencies[count.index]}-bucket"
+  }
+  force_destroy = true
+}
+
+# Set the ACL for each S3 bucket
+resource "aws_s3_bucket_acl" "agency_bucket_acl" {
+  count  = length(var.agencies)
+  bucket = aws_s3_bucket.agency_bucket[count.index].id
+
+  # Set the ACL to private and restrict file types
+  acl = "private"
+}
+
+# Add lifecycle policy to move data to glacier after 90 days
+resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
+  count  = length(var.agencies)
+  bucket = aws_s3_bucket.agency_bucket[count.index].id
+
+  rule {
+    id      = "move-to-glacier"
+    status  = "Enabled"
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    filter {
+      prefix = "/"
+    }
   }
 }
 
-# Create a public subnet for the NAT gateway
-resource "aws_subnet" "public_subnet" {
-  vpc_id            = aws_vpc.sftp_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "eu-west-1a"
-  map_public_ip_on_launch = true
-  tags = {
-    Name = "public-subnet"
-  }
-}
 
-# Define the private subnets for the VPC
-resource "aws_subnet" "private_subnet" {
-  vpc_id            = aws_vpc.sftp_vpc.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "eu-west-1a"
-  tags = {
-    Name = "private-subnet"
-  }
-}
-
-# Create an internet gateway for the VPC
-resource "aws_internet_gateway" "sftp_gateway" {
-  vpc_id = aws_vpc.sftp_vpc.id
-  tags = {
-    Name = "sftp-gateway"
-  }
-}
-
-# Create a route table for the public subnet
-resource "aws_route_table" "public_route_table" {
-  vpc_id = aws_vpc.sftp_vpc.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.sftp_gateway.id
-  }
-  tags = {
-    Name = "public-route-table"
-  }
-}
-
-# Associate the public subnet with the public route table
-resource "aws_route_table_association" "public_route_table_association" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_route_table.id
-}
-
-# Create a security group for the SFTP server
-resource "aws_security_group" "sftp_security_group" {
-  name_prefix = "sftp-security-group-"
-  vpc_id      = aws_vpc.sftp_vpc.id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-data "aws_region" "current" {
-  name = "eu-west-1"
-}
-
-# Create a VPC endpoint for the SFTP server
-resource "aws_vpc_endpoint" "sftp_vpc_endpoint" {
-  count             = length(var.agencies)
-  vpc_id            = aws_vpc.sftp_vpc.id
-  service_name      = "com.amazonaws.${data.aws_region.current.name}.transfer.server"
-  vpc_endpoint_type = "Interface"
-
-  # Associate the endpoint with the private subnets
-  subnet_ids = [
-    aws_subnet.private_subnet.id
-  ]
-
-  security_group_ids = [
-    aws_security_group.sftp_security_group.id
-  ]
-}
 
 # Create the IAM roles and policies for each agency
 resource "aws_iam_role" "agency_role" {
@@ -120,41 +73,36 @@ resource "aws_iam_policy" "agency_policy" {
       {
         Action   = [
           "s3:PutObject",
-          "s3:GetObject"
+          "s3:GetObject",
+          "s3:ListBucket"
         ]
         Effect   = "Allow"
         Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*",
+          "${aws_s3_bucket.agency_bucket[count.index].arn}"
         ]
-        Condition = {
-          "StringEquals": {
-            "s3:x-amz-meta-filetype": [
-              "csv",
-              "excel",
-              "json"
-            ]
-          }
-          "NumericLessThanEquals": {
-            "s3:content-length": 52428800 # 50 MB
-          }
-        }
       }
     ]
   })
 }
 
-# Create the SFTP server and associate it with the VPC endpoint
-resource "aws_transfer_server" "sftp" {
-  count             = length(var.agencies)
-  endpoint_type     = "VPC"
-  identity_provider_type = "SERVICE_MANAGED"
-  tags = {
-    Name        = "sftp-${var.agencies[count.index]}"
-  }
+# Attach the IAM policy to the IAM role for the agency
+resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
+  count           = length(var.agencies)
+  policy_arn      = aws_iam_policy.agency_policy[count.index].arn
+  role            = aws_iam_role.agency_role[count.index].name
+}
 
-  endpoint_details {
-    vpc_endpoint_id  = aws_vpc_endpoint.sftp_vpc_endpoint[count.index].id
+# Create the SFTP server and users for each agency
+resource "aws_transfer_server" "sftp" {
+  count                 = length(var.agencies)
+  identity_provider_type = "SERVICE_MANAGED"
+  protocols              = ["SFTP"]
+  endpoint_type          = "PUBLIC"
+  tags = {
+    Name = "${var.agencies[count.index]}-sftp-server"
   }
+  force_destroy = true
 }
 
 # Create an SFTP user for each agency with public key authentication
@@ -227,25 +175,3 @@ resource "aws_secretsmanager_secret_version" "sftp_key_secret_version" {
   secret_id   = aws_secretsmanager_secret.sftp_key_secret[count.index].id
   secret_string = tls_private_key.sftp_key[count.index].private_key_pem
 }
-
-
-# Create the S3 bucket for each agency
-resource "aws_s3_bucket" "agency_bucket" {
-  count  = length(var.agencies)
-  bucket = "${var.agencies[count.index]}-bucket"
-
-  tags = {
-    Name = "${var.agencies[count.index]}-bucket"
-  }
-  force_destroy = true
-}
-
-# Set the ACL for each S3 bucket
-resource "aws_s3_bucket_acl" "agency_bucket_acl" {
-  count  = length(var.agencies)
-  bucket = aws_s3_bucket.agency_bucket[count.index].id
-
-  # Set the ACL to private and restrict file types
-  acl = "private"
-}
-
