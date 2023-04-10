@@ -14,15 +14,6 @@ resource "aws_s3_bucket" "agency_bucket" {
   force_destroy = true
 }
 
-# Set the ACL for each S3 bucket
-resource "aws_s3_bucket_acl" "agency_bucket_acl" {
-  count  = length(var.agencies)
-  bucket = aws_s3_bucket.agency_bucket[count.index].id
-
-  # Set the ACL to private and restrict file types
-  acl = "private"
-}
-
 # Add lifecycle policy to move data to glacier after 90 days
 resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
   count  = length(var.agencies)
