@@ -155,13 +155,8 @@ resource "aws_transfer_user" "sftp_user" {
   count       = length(var.agencies)
   server_id   = aws_transfer_server.sftp[count.index].id
   user_name   = "${var.agencies[count.index]}-user"
-  role        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.agencies[count.index]}"
-  home_directory = "/${var.agencies[count.index]}"
-
-  home_directory_mappings {
-    entry = "/"
-    target = "/${var.agencies[count.index]}"
-  }
+  role        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.agencies[count.index]}-role"
+  home_directory = "/${var.agencies[count.index]}-bucket"
 }
 
 # Generate an RSA key pair for each agency user
