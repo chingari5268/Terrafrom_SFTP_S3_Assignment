@@ -3,8 +3,6 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-data "aws_caller_identity" "current" {}
-
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
@@ -16,14 +14,13 @@ resource "aws_s3_bucket" "agency_bucket" {
   force_destroy = true
 }
 
-resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block" {
-  count = length(var.agencies)
+# Set the ACL for each S3 bucket
+resource "aws_s3_bucket_acl" "agency_bucket_acl" {
+  count  = length(var.agencies)
   bucket = aws_s3_bucket.agency_bucket[count.index].id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  # Set the ACL to private and restrict file types
+  acl = "private"
 }
 
 # Add lifecycle policy to move data to glacier after 90 days
@@ -46,28 +43,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
   }
 }
 
-
-# Enable SSE for each S3 bucket
-resource "aws_s3_bucket_server_side_encryption_configuration" "agency_bucket_sse" {
-  count = length(var.agencies)
-  bucket = aws_s3_bucket.agency_bucket[count.index].id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-# Enable versioning for each S3 bucket
-resource "aws_s3_bucket_versioning" "agency_bucket_versioning" {
-  count = length(var.agencies)
-  bucket = aws_s3_bucket.agency_bucket[count.index].id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
 
 
 # Create the IAM roles and policies for each agency
@@ -98,24 +73,14 @@ resource "aws_iam_policy" "agency_policy" {
       {
         Action   = [
           "s3:PutObject",
-          "s3:GetObject"
+          "s3:GetObject",
+          "s3:ListBucket"
         ]
         Effect   = "Allow"
         Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*",
+          "${aws_s3_bucket.agency_bucket[count.index].arn}"
         ]
-        Condition = {
-          "StringEquals": {
-            "s3:x-amz-meta-filetype": [
-              "csv",
-              "excel",
-              "json"
-            ]
-          }
-          "NumericLessThanEquals": {
-            "s3:content-length": 52428800 # 50 MB
-          }
-        }
       }
     ]
   })
@@ -140,21 +105,25 @@ resource "aws_transfer_server" "sftp" {
   force_destroy = true
 }
 
-# Create an SFTP user for each agency and assign home directory mappings
+# Create an SFTP user for each agency with public key authentication
 resource "aws_transfer_user" "sftp_user" {
-  count       = length(var.agencies)
-  server_id   = aws_transfer_server.sftp[count.index].id
-  user_name   = "${var.agencies[count.index]}-user"
-  role        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.agencies[count.index]}-role"
-  home_directory = "/${var.agencies[count.index]}-bucket"
+  count           = length(var.agencies)
+  server_id       = aws_transfer_server.sftp[count.index].id
+  user_name       = "${var.agencies[count.index]}-user"
+  home_directory  = "/${var.agencies[count.index]}-bucket"
+  role            = aws_iam_role.agency_role[count.index].arn
+  policy          = aws_iam_policy.agency_policy[count.index].arn
+
+  tags = {
+    Name = "${var.agencies[count.index]}-sftp-user"
+  }
 }
 
 # Generate an RSA key pair for each agency user
 resource "tls_private_key" "sftp_key" {
-  count     = length(var.agencies)
+  count = length(var.agencies)
   algorithm = "RSA"
   rsa_bits  = 4096
-
 }
 
 # Upload the public key to the SFTP server for each agency user
@@ -178,7 +147,6 @@ resource "aws_kms_key" "sftp_key_kms" {
   count      = length(var.agencies)
   description = "KMS key for ${var.agencies[count.index]} SFTP private key"
   enable_key_rotation = true
-  deletion_window_in_days = 7
 }
 
 resource "aws_secretsmanager_secret" "sftp_key_secret" {
@@ -191,35 +159,4 @@ resource "aws_secretsmanager_secret_version" "sftp_key_secret_version" {
   count       = length(var.agencies)
   secret_id   = aws_secretsmanager_secret.sftp_key_secret[count.index].id
   secret_string = tls_private_key.sftp_key[count.index].private_key_pem
-}
-
-# Configure the CloudWatch metric alarm to monitor the S3 bucket for each agency
-resource "aws_cloudwatch_metric_alarm" "missing_data_alarm" {
-  count            = length(var.agencies)
-  alarm_name       = "${var.agencies[count.index]}-missing-data-alarm"
-  comparison_operator = "LessThanThreshold"
-  evaluation_periods = 1
-  metric_name      = "NumberOfObjects"
-  namespace        = "AWS/S3"
-  period           = 300 # for every 5 minutes
-  statistic        = "Average"
-  threshold        = 1
-  alarm_description = "Alert if the number of objects in the S3 bucket for ${var.agencies[count.index]} is less than expected"
-  alarm_actions    = [aws_sns_topic.incident_alerts.arn] # Replace with your SNS topic ARN for email notifications
-
-  dimensions = {
-    BucketName = aws_s3_bucket.agency_bucket[count.index].id
-  }
-}
-
-# Create SNS topic for incident alerts
-resource "aws_sns_topic" "incident_alerts" {
-  name = "incident-alerts"
-}
-
-# Subscribe the SRE team email address to the SNS topic
-resource "aws_sns_topic_subscription" "sre_email_subscription" {
-  topic_arn = aws_sns_topic.incident_alerts.arn
-  protocol  = "email"
-  endpoint  = "chethan7119982@gmail.com"
 }
