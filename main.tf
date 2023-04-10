@@ -14,17 +14,6 @@ resource "aws_s3_bucket" "agency_bucket" {
   force_destroy = true
 }
 
-resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block" {
-  count = length(var.agencies)
-  bucket = aws_s3_bucket.agency_bucket[count.index].id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
   count  = length(var.agencies)
