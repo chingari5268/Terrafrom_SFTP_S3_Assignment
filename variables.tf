@@ -1,5 +1,5 @@
 # Define the agency names
 variable "agencies" {
   type    = list(string)
-  default = ["agencyamerica-usausausa-sftp"]
+  default = ["agency-usaohio-sftp"]
 }
