@@ -22,13 +22,13 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
-resource "aws_subnet" "private_subnets" {
-  count = 3
-  cidr_block = "10.0.${count.index + 1}.0/24"
-  vpc_id = aws_vpc.sftp_vpc.id
-  availability_zone = "eu-west-${count.index + 1}a"
+# Define the private subnets for the VPC
+resource "aws_subnet" "private_subnet" {
+  vpc_id            = aws_vpc.sftp_vpc.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "eu-west-1a"
   tags = {
-    Name = "sftp-private-subnet-${count.index + 1}"
+    Name = "private-subnet"
   }
 }
 
@@ -83,7 +83,7 @@ resource "aws_vpc_endpoint" "sftp_vpc_endpoint" {
 
   # Associate the endpoint with the private subnets
   subnet_ids = [
-    aws_subnet.private_subnets[count.index].id
+    aws_subnet.private_subnets.id
   ]
 }
 
@@ -148,7 +148,7 @@ resource "aws_transfer_server" "sftp" {
 
   endpoint_details {
     vpc_endpoint_id  = aws_vpc_endpoint.sftp_vpc_endpoint[count.index].id
-    security_group_ids = [aws_security_group.sftp_security_group.id]
+    security_group_ids = aws_security_group.sftp_security_group.id
   }
 
   tags = {
