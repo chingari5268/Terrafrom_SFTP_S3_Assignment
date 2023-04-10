@@ -54,7 +54,6 @@ resource "aws_iam_role" "agency_role" {
   })
 }
 
-# Create the IAM policy for the agency
 resource "aws_iam_policy" "agency_policy" {
   count  = length(var.agencies)
   name   = "${var.agencies[count.index]}-policy"
@@ -70,6 +69,15 @@ resource "aws_iam_policy" "agency_policy" {
         Effect   = "Allow"
         Resource = [
           "${aws_s3_bucket.agency_bucket[count.index].arn}/*",
+          "${aws_s3_bucket.agency_bucket[count.index].arn}"
+        ]
+      },
+      {
+        Action   = [
+          "s3:GetBucketLocation"
+        ]
+        Effect   = "Allow"
+        Resource = [
           "${aws_s3_bucket.agency_bucket[count.index].arn}"
         ]
       }
