@@ -147,7 +147,7 @@ resource "aws_iam_policy" "agency_policy" {
 resource "aws_transfer_server" "sftp" {
   count             = length(var.agencies)
   endpoint_type     = "VPC"
-  identity_provider = "SERVICE_MANAGED"
+  identity_provider_type = "SERVICE_MANAGED"
   tags = {
     Name        = "sftp-${var.agencies[count.index]}"
   }
