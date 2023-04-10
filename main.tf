@@ -193,9 +193,11 @@ resource "aws_transfer_user" "sftp_user" {
 
 # Generate an RSA key pair for each agency user
 resource "tls_private_key" "sftp_key" {
-  count = length(var.agencies)
+  count     = length(var.agencies)
   algorithm = "RSA"
   rsa_bits  = 4096
+
+  sensitive = true
 }
 
 # Upload the public key to the SFTP server for each agency user
@@ -219,6 +221,7 @@ resource "aws_kms_key" "sftp_key_kms" {
   count      = length(var.agencies)
   description = "KMS key for ${var.agencies[count.index]} SFTP private key"
   enable_key_rotation = true
+  deletion_window_in_days = 1
 }
 
 resource "aws_secretsmanager_secret" "sftp_key_secret" {
