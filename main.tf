@@ -144,21 +144,18 @@ resource "aws_iam_policy" "agency_policy" {
 }
 
 # Create the SFTP server and associate it with the VPC endpoint
-# Create the SFTP server and associate it with the VPC endpoint
 resource "aws_transfer_server" "sftp" {
-  count                 = length(var.agencies)
-  identity_provider_type = "SERVICE_MANAGED"
-  protocols              = ["SFTP"]
-  endpoint_type          = "VPC"
+  count             = length(var.agencies)
+  endpoint_type     = "VPC"
+  identity_provider = "SERVICE_MANAGED"
+  tags = {
+    Name        = "sftp-${var.agencies[count.index]}"
+  }
 
   endpoint_details {
     vpc_endpoint_id  = aws_vpc_endpoint.sftp_vpc_endpoint[count.index].id
+    security_group_ids = [aws_security_group.sftp_security_group.id]
   }
-
-  tags = {
-    Name = "${var.agencies[count.index]}-sftp-server"
-  }
-  force_destroy = true
 }
 
 # Create an SFTP user for each agency with public key authentication
