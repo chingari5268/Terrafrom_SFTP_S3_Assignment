@@ -154,6 +154,7 @@ resource "aws_transfer_user" "sftp_user" {
   server_id       = aws_transfer_server.sftp[count.index].id
   user_name       = "${var.agencies[count.index]}-user"
   home_directory  = "/${var.agencies[count.index]}-bucket"
+  home_directory_type = "LOGICAL"
   role            =  aws_iam_role.agency_role[count.index].arn
 
   tags = {
