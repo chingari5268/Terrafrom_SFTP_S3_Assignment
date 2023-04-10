@@ -25,8 +25,8 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
     Statement = [
       {
         Effect = "Allow"
-        Principal: {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${var.agencies[count.index]}-user"
+        Principal = {
+          AWS: "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${var.agencies[count.index]}-user"
         },
         Action = [
           "s3:GetObject",
