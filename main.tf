@@ -3,6 +3,12 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+# Define the agency names
+variable "agencies" {
+  type    = list(string)
+  default = ["agency-a"]
+}
+
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
@@ -13,6 +19,17 @@ resource "aws_s3_bucket" "agency_bucket" {
   }
   force_destroy = true
 }
+
+resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block" {
+  count = length(var.agencies)
+  bucket = aws_s3_bucket.agency_bucket[count.index].id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
@@ -119,7 +136,7 @@ resource "aws_iam_role" "agency_role" {
 resource "aws_iam_policy" "agency_policy" {
   count  = length(var.agencies)
   name   = "${var.agencies[count.index]}-policy"
-   policy = jsonencode({
+  policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
       {
@@ -143,6 +160,16 @@ resource "aws_iam_policy" "agency_policy" {
             "s3:content-length": 52428800 # 50 MB
           }
         }
+      },
+      {
+        Action   = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Effect   = "Allow"
+        Resource = [
+          "${aws_s3_bucket.agency_bucket[count.index].arn}"
+        ]
       }
     ]
   })
@@ -175,10 +202,27 @@ resource "aws_transfer_user" "sftp_user" {
   home_directory  = "/${var.agencies[count.index]}-bucket"
   role            =  aws_iam_role.agency_role[count.index].arn
 
+  # Allow the SFTP user to upload objects to the S3 bucket
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action   = [
+          "s3:PutObject"
+        ]
+        Effect   = "Allow"
+        Resource = [
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+        ]
+      }
+    ]
+  })
+
   tags = {
     Name = "${var.agencies[count.index]}-sftp-user"
   }
 }
+
 
 # Generate an RSA key pair for each agency user
 resource "tls_private_key" "sftp_key" {
