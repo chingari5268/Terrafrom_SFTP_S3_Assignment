@@ -24,6 +24,7 @@ resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block"
   restrict_public_buckets = true
 }
 
+
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
   count  = length(var.agencies)
@@ -203,6 +204,14 @@ resource "aws_transfer_ssh_key" "sftp_ssh_key" {
   server_id = aws_transfer_server.sftp[count.index].id
   user_name = "${var.agencies[count.index]}-user"
   body      = tls_private_key.sftp_key[count.index].public_key_openssh
+
+  depends_on = [aws_transfer_user.sftp_user]
+  
+  lifecycle {
+    ignore_changes = [
+      body,
+    ]
+  }
 }
 
 # Store the private key securely in AWS Secrets Manager for each agency user
