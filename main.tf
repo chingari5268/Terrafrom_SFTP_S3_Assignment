@@ -80,11 +80,6 @@ resource "aws_vpc_endpoint" "sftp_vpc_endpoint" {
   count       = length(var.agencies)
   vpc_id      = aws_vpc.sftp_vpc.id
   service_name = "com.amazonaws.${data.aws_region.current.name}.transfer.server"
-
-  # Associate the endpoint with the private subnets
-  subnet_ids = [
-    aws_subnet.private_subnet.id
-  ]
 }
 
 # Create the IAM roles and policies for each agency
