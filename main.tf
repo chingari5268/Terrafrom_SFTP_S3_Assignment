@@ -62,33 +62,19 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Sid = "DenyPublicAccess"
-        Effect = "Deny"
-        Principal = "*"
-        Action = [
-          "s3:GetObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}",
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
-        ]
-        Condition = {
-          "Bool": {
-            "aws:SecureTransport": "false"
-          }
-        }
-      },
-      {
+     {
         Sid = "AllowTransferUserAccess"
         Effect = "Allow"
         Principal = {
-          AWS = "${aws_transfer_server.sftp[count.index].arn}"
+          "AWS": [
+            "${aws_transfer_server.sftp[count.index].arn}",
+            "${data.aws_transfer_user.sftp_user[count.index].arn}"
+          ]
         }
         Action = [
           "s3:GetObject",
-          "s3:ListBucket"
+          "s3:ListBucket",
+          "s3:PutObject" # Add PutObject action to allow the user to upload objects
         ]
         Resource = [
           "${aws_s3_bucket.agency_bucket[count.index].arn}",
@@ -206,6 +192,11 @@ resource "aws_transfer_user" "sftp_user" {
   }
 }
 
+# Create a data source to retrieve the AWS Transfer User ARN
+data "aws_transfer_user" "sftp_user" {
+  count = length(var.agencies)
+  user_name = "${var.agencies[count.index]}-user"
+}
 
 # Generate an RSA key pair for each agency user
 resource "tls_private_key" "sftp_key" {
