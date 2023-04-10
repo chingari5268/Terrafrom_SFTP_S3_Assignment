@@ -112,8 +112,23 @@ resource "aws_transfer_user" "sftp_user" {
   user_name       = "${var.agencies[count.index]}-user"
   home_directory  = "/${var.agencies[count.index]}-bucket"
   role            = aws_iam_role.agency_role[count.index].arn
-  policy          = aws_iam_policy.agency_policy[count.index].arn
-
+  
+  # Set the IAM policy for the user to allow file uploads to S3
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowS3Uploads"
+        Effect    = "Allow"
+        Action    = [
+          "s3:PutObject"
+        ]
+        Resource  = [
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+        ]
+      }
+    ]
+  })
   tags = {
     Name = "${var.agencies[count.index]}-sftp-user"
   }
