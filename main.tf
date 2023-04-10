@@ -24,7 +24,6 @@ resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block"
   restrict_public_buckets = true
 }
 
-
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
   count  = length(var.agencies)
@@ -63,11 +62,11 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
+        Sid = "DenyPublicAccess"
+        Effect = "Deny"
         Principal = "*"
         Action = [
           "s3:GetObject",
-          "s3:PutObject",
           "s3:ListBucket"
         ]
         Resource = [
@@ -79,10 +78,25 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
             "aws:SecureTransport": "false"
           }
         }
+      },
+      {
+        Sid = "AllowSFTPUploads"
+        Effect = "Allow"
+        Principal = {
+          AWS = "${aws_transfer_user.sftp_user[count.index].arn}"
+        }
+        Action = [
+          "s3:PutObject"
+        ]
+        Resource = [
+          "${aws_s3_bucket.agency_bucket[count.index].arn}",
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+        ]
       }
     ]
   })
 }
+
 
 # Enable SSE for each S3 bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "agency_bucket_sse" {
@@ -129,7 +143,7 @@ resource "aws_iam_role" "agency_role" {
 resource "aws_iam_policy" "agency_policy" {
   count  = length(var.agencies)
   name   = "${var.agencies[count.index]}-policy"
-  policy = jsonencode({
+   policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
       {
@@ -153,16 +167,6 @@ resource "aws_iam_policy" "agency_policy" {
             "s3:content-length": 52428800 # 50 MB
           }
         }
-      },
-      {
-        Action   = [
-          "s3:ListBucket",
-          "s3:GetBucketLocation"
-        ]
-        Effect   = "Allow"
-        Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}"
-        ]
       }
     ]
   })
@@ -194,22 +198,6 @@ resource "aws_transfer_user" "sftp_user" {
   user_name       = "${var.agencies[count.index]}-user"
   home_directory  = "/${var.agencies[count.index]}-bucket"
   role            =  aws_iam_role.agency_role[count.index].arn
-
-  # Allow the SFTP user to upload objects to the S3 bucket
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [
-      {
-        Action   = [
-          "s3:PutObject"
-        ]
-        Effect   = "Allow"
-        Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
-        ]
-      }
-    ]
-  })
 
   tags = {
     Name = "${var.agencies[count.index]}-sftp-user"
