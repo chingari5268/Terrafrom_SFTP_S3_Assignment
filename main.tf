@@ -24,7 +24,6 @@ resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block"
   restrict_public_buckets = true
 }
 
-
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
   count  = length(var.agencies)
@@ -153,11 +152,6 @@ resource "aws_iam_policy" "agency_policy" {
           "NumericLessThanEquals": {
             "s3:content-length": 52428800 # 50 MB
           }
-        },
-        Principal = {
-          AWS = [
-            aws_transfer_user.sftp_user[count.index].arn
-          ]
         }
       }
     ]
@@ -181,6 +175,19 @@ resource "aws_transfer_server" "sftp" {
     Name = "${var.agencies[count.index]}-sftp-server"
   }
   force_destroy = true
+}
+
+# Create an SFTP user for each agency with public key authentication
+resource "aws_transfer_user" "sftp_user" {
+  count           = length(var.agencies)
+  server_id       = aws_transfer_server.sftp[count.index].id
+  user_name       = "${var.agencies[count.index]}-user"
+  home_directory  = "/${var.agencies[count.index]}-bucket"
+  role            =  aws_iam_role.agency_role[count.index].arn
+
+  tags = {
+    Name = "${var.agencies[count.index]}-sftp-user"
+  }
 }
 
 # Generate an RSA key pair for each agency user
@@ -215,19 +222,6 @@ resource "aws_secretsmanager_secret_version" "sftp_key_secret_version" {
   count       = length(var.agencies)
   secret_id   = aws_secretsmanager_secret.sftp_key_secret[count.index].id
   secret_string = tls_private_key.sftp_key[count.index].private_key_pem
-}
-
-# Create an SFTP user for each agency with public key authentication
-resource "aws_transfer_user" "sftp_user" {
-  count           = length(var.agencies)
-  server_id       = aws_transfer_server.sftp[count.index].id
-  user_name       = "${var.agencies[count.index]}-user"
-  home_directory  = "/${var.agencies[count.index]}-bucket"
-  role            =  aws_iam_role.agency_role[count.index].arn
-
-  tags = {
-    Name = "${var.agencies[count.index]}-sftp-user"
-  }
 }
 
 # Configure the CloudWatch metric alarm to monitor the S3 bucket for each agency
