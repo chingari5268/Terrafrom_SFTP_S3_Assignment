@@ -24,6 +24,7 @@ resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block"
   restrict_public_buckets = true
 }
 
+
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
   count  = length(var.agencies)
@@ -62,31 +63,14 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid = "DenyPublicAccess"
-        Effect = "Deny"
-        Principal = "*"
-        Action = [
-          "s3:GetObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}",
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
-        ]
-        Condition = {
-          "Bool": {
-            "aws:SecureTransport": "false"
-          }
-        }
-      },
-      {
         Sid = "AllowSFTPUploads"
         Effect = "Allow"
         Principal = {
           AWS = "${aws_transfer_user.sftp_user[count.index].arn}"
         }
         Action = [
-          "s3:PutObject"
+          "s3:PutObject",
+          "s3:GetObject"
         ]
         Resource = [
           "${aws_s3_bucket.agency_bucket[count.index].arn}",
@@ -96,6 +80,7 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
     ]
   })
 }
+
 
 
 # Enable SSE for each S3 bucket
