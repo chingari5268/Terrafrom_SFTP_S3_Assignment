@@ -3,6 +3,9 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+data "aws_caller_identity" "current" {}
+
+
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
