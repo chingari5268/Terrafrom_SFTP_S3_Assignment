@@ -3,9 +3,6 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-data "aws_caller_identity" "current" {}
-
-
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
   count  = length(var.agencies)
@@ -26,7 +23,6 @@ resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block"
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
-
 
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
