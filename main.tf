@@ -62,14 +62,29 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-     {
+      {
+        Sid = "DenyPublicAccess"
+        Effect = "Deny"
+        Principal = "*"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "${aws_s3_bucket.agency_bucket[count.index].arn}",
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+        ]
+        Condition = {
+          "Bool": {
+            "aws:SecureTransport": "false"
+          }
+        }
+      },
+      {
         Sid = "AllowTransferUserAccess"
         Effect = "Allow"
         Principal = {
-          "AWS": [
-            "${aws_transfer_server.sftp[count.index].arn}",
-            "${aws_transfer_user.sftp_user[count.index].arn}"
-          ]
+          AWS = "${aws_transfer_server.sftp[count.index].arn}"
         }
         Action = [
           "s3:GetObject",
@@ -83,6 +98,7 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
     ]
   })
 }
+
 
 # Enable SSE for each S3 bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "agency_bucket_sse" {
