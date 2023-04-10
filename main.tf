@@ -148,7 +148,7 @@ resource "aws_transfer_server" "sftp" {
 
   endpoint_details {
     vpc_endpoint_id  = aws_vpc_endpoint.sftp_vpc_endpoint[count.index].id
-    security_group_ids = aws_security_group.sftp_security_group.id
+    security_group_ids = [aws_security_group.sftp_security_group.id]
   }
 
   tags = {
