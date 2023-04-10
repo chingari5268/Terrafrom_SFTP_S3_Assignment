@@ -24,6 +24,7 @@ resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block"
   restrict_public_buckets = true
 }
 
+
 # Set the ACL for each S3 bucket
 resource "aws_s3_bucket_acl" "agency_bucket_acl" {
   count  = length(var.agencies)
@@ -52,6 +53,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
     }
   }
 }
+
 
 # Enable SSE for each S3 bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "agency_bucket_sse" {
@@ -164,6 +166,7 @@ resource "tls_private_key" "sftp_key" {
   count     = length(var.agencies)
   algorithm = "RSA"
   rsa_bits  = 4096
+
 }
 
 # Upload the public key to the SFTP server for each agency user
