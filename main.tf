@@ -67,7 +67,7 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
       {
         Effect = "Allow"
         Principal = {
-         AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/aws_transfer_user/${aws_transfer_user.agency_user[count.index].user_name}"
+         AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/aws_transfer_user/${aws_transfer_user.sftp_user[count.index].user_name}"
         }
         Action = [
           "s3:GetObject",
