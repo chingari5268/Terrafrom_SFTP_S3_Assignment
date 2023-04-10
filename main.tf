@@ -66,7 +66,7 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
         Sid = "AllowTransferUserAccess"
         Effect = "Allow"
         Principal = {
-           AWS =  "${data.aws_transfer_user.sftp_user[count.index].arn}"
+           AWS =  "${aws_transfer_user.sftp_user[count.index].arn}"
         }
         Action = [
           "s3:GetObject",
@@ -187,12 +187,6 @@ resource "aws_transfer_user" "sftp_user" {
   tags = {
     Name = "${var.agencies[count.index]}-sftp-user"
   }
-}
-
-# Create a data source to retrieve the AWS Transfer User ARN
-data "aws_transfer_user" "sftp_user" {
-  count = length(var.agencies)
-  user_name = "${var.agencies[count.index]}-user"
 }
 
 # Generate an RSA key pair for each agency user
