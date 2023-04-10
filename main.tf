@@ -66,10 +66,7 @@ resource "aws_s3_bucket_policy" "agency_bucket_policy" {
         Sid = "AllowTransferUserAccess"
         Effect = "Allow"
         Principal = {
-          "AWS": [
-            "${aws_transfer_server.sftp[count.index].arn}",
-            "${data.aws_transfer_user.sftp_user[count.index].arn}"
-          ]
+           AWS =  "${data.aws_transfer_user.sftp_user[count.index].arn}"
         }
         Action = [
           "s3:GetObject",
