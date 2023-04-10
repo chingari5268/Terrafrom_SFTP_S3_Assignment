@@ -16,6 +16,37 @@ resource "aws_s3_bucket" "agency_bucket" {
   force_destroy = true
 }
 
+resource "aws_s3_bucket_policy" "agency_bucket_policy" {
+  count  = length(var.agencies)
+  bucket = aws_s3_bucket.agency_bucket[count.index].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal: {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${var.agencies[count.index]}-user"
+        },
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ],
+        Resource = [
+          "${aws_s3_bucket.agency_bucket[count.index].arn}",
+          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+        ],
+        Condition = {
+          "Bool": {
+            "aws:SecureTransport": "true"
+          }
+        }
+      }
+    ]
+  })
+}
+
 resource "aws_s3_bucket_public_access_block" "agency_bucket_public_access_block" {
   count = length(var.agencies)
   bucket = aws_s3_bucket.agency_bucket[count.index].id
