@@ -58,9 +58,7 @@ resource "aws_iam_policy" "agency_policy" {
     Statement = [
       {
         Action   = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket"
+          "s3: * "
         ]
         Effect   = "Allow"
         Resource = [
@@ -70,10 +68,7 @@ resource "aws_iam_policy" "agency_policy" {
       },
       {
         Action   = [
-          "s3:GetBucketLocation",
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket"
+          "s3:*"
         ]
         Effect   = "Allow"
         Resource = [
@@ -118,10 +113,8 @@ resource "aws_transfer_user" "sftp_user" {
       {
         Sid       = "AllowS3Uploads"
         Effect    = "Allow"
-        Action    = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket"
+        Action   = [
+          "s3:*"
         ]
         Resource  = [
           "${aws_s3_bucket.agency_bucket.arn}/*"
