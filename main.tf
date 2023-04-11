@@ -3,21 +3,25 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+# Define the agency name
+variable "agencies" {
+  type    = string
+  default = "agency-a"
+}
+
 # Create the S3 bucket for each agency
 resource "aws_s3_bucket" "agency_bucket" {
-  count  = length(var.agencies)
-  bucket = "${var.agencies[count.index]}-bucket"
+  bucket = "${var.agencies}-bucket"
 
   tags = {
-    Name = "${var.agencies[count.index]}-bucket"
+    Name = "${var.agencies}-bucket"
   }
   force_destroy = true
 }
 
 # Add lifecycle policy to move data to glacier after 90 days
 resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
-  count  = length(var.agencies)
-  bucket = aws_s3_bucket.agency_bucket[count.index].id
+  bucket = aws_s3_bucket.agency_bucket.id
 
   rule {
     id      = "move-to-glacier"
@@ -38,8 +42,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
 
 # Create the IAM roles and policies for each agency
 resource "aws_iam_role" "agency_role" {
-  count = length(var.agencies)
-  name  = "${var.agencies[count.index]}-role"
+  name  = "${var.agencies}-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -55,8 +58,7 @@ resource "aws_iam_role" "agency_role" {
 }
 
 resource "aws_iam_policy" "agency_policy" {
-  count  = length(var.agencies)
-  name   = "${var.agencies[count.index]}-policy"
+  name   = "${var.agencies}-policy"
    policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
@@ -68,17 +70,20 @@ resource "aws_iam_policy" "agency_policy" {
         ]
         Effect   = "Allow"
         Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*",
-          "${aws_s3_bucket.agency_bucket[count.index].arn}"
+          "${aws_s3_bucket.agency_bucket.arn}/*",
+          "${aws_s3_bucket.agency_bucket.arn}"
         ]
       },
       {
         Action   = [
-          "s3:GetBucketLocation"
+          "s3:GetBucketLocation",
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
         ]
         Effect   = "Allow"
         Resource = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}"
+          "${aws_s3_bucket.agency_bucket.arn}"
         ]
       }
     ]
@@ -87,30 +92,28 @@ resource "aws_iam_policy" "agency_policy" {
 
 # Attach the IAM policy to the IAM role for the agency
 resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
-  count           = length(var.agencies)
-  policy_arn      = aws_iam_policy.agency_policy[count.index].arn
-  role            = aws_iam_role.agency_role[count.index].name
+  policy_arn      = aws_iam_policy.agency_policy.arn
+  role            = aws_iam_role.agency_role.name
 }
 
 # Create the SFTP server and users for each agency
 resource "aws_transfer_server" "sftp" {
-  count                 = length(var.agencies)
   identity_provider_type = "SERVICE_MANAGED"
   protocols              = ["SFTP"]
   endpoint_type          = "PUBLIC"
   tags = {
-    Name = "${var.agencies[count.index]}-sftp-server"
+    Name = "${var.agencies}-sftp-server"
   }
   force_destroy = true
 }
 
 # Create an SFTP user for each agency with public key authentication
 resource "aws_transfer_user" "sftp_user" {
-  count           = length(var.agencies)
-  server_id       = aws_transfer_server.sftp[count.index].id
-  user_name       = "${var.agencies[count.index]}-user"
-  home_directory  = "/${var.agencies[count.index]}-bucket"
-  role            = aws_iam_role.agency_role[count.index].arn
+  server_id       = aws_transfer_server.sftp.id
+  user_name       = "${var.agencies}-user"
+  home_directory  = "/${var.agencies}-bucket"
+  home_directory_type = "LOGICAL"
+  role            = aws_iam_role.agency_role.arn
   
   # Set the IAM policy for the user to allow file uploads to S3
   policy = jsonencode({
@@ -125,29 +128,27 @@ resource "aws_transfer_user" "sftp_user" {
           "s3:ListBucket"
         ]
         Resource  = [
-          "${aws_s3_bucket.agency_bucket[count.index].arn}/*"
+          "${aws_s3_bucket.agency_bucket.arn}/*"
         ]
       }
     ]
   })
   tags = {
-    Name = "${var.agencies[count.index]}-sftp-user"
+    Name = "${var.agencies}-sftp-user"
   }
 }
 
 # Generate an RSA key pair for each agency user
 resource "tls_private_key" "sftp_key" {
-  count = length(var.agencies)
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
 # Upload the public key to the SFTP server for each agency user
 resource "aws_transfer_ssh_key" "sftp_ssh_key" {
-  count     = length(var.agencies)
-  server_id = aws_transfer_server.sftp[count.index].id
-  user_name = "${var.agencies[count.index]}-user"
-  body      = tls_private_key.sftp_key[count.index].public_key_openssh
+  server_id = aws_transfer_server.sftp.id
+  user_name = "${var.agencies}-user"
+  body      = tls_private_key.sftp_key.public_key_openssh
 
   depends_on = [aws_transfer_user.sftp_user]
   
@@ -160,19 +161,16 @@ resource "aws_transfer_ssh_key" "sftp_ssh_key" {
 
 # Store the private key securely in AWS Secrets Manager for each agency user
 resource "aws_kms_key" "sftp_key_kms" {
-  count      = length(var.agencies)
-  description = "KMS key for ${var.agencies[count.index]} SFTP private key"
+  description = "KMS key for ${var.agencies} SFTP private key"
   enable_key_rotation = true
 }
 
 resource "aws_secretsmanager_secret" "sftp_key_secret" {
-  count       = length(var.agencies)
-  name        = "${var.agencies[count.index]}-sftp-key-secret"
-  kms_key_id  = aws_kms_key.sftp_key_kms[count.index].arn
+  name        = "${var.agencies}-sftp-key-secret"
+  kms_key_id  = aws_kms_key.sftp_key_kms.arn
 }
 
 resource "aws_secretsmanager_secret_version" "sftp_key_secret_version" {
-  count       = length(var.agencies)
-  secret_id   = aws_secretsmanager_secret.sftp_key_secret[count.index].id
-  secret_string = tls_private_key.sftp_key[count.index].private_key_pem
+  secret_id   = aws_secretsmanager_secret.sftp_key_secret.id
+  secret_string = tls_private_key.sftp_key.private_key_pem
 }
