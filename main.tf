@@ -106,7 +106,7 @@ resource "aws_transfer_user" "sftp_user" {
   server_id       = aws_transfer_server.sftp.id
   user_name       = "${var.agencies}-user"
   home_directory  = "/${var.agencies}-bucket"
-  home_directory_type = "LOGICAL"
+  home_directory_type  = "PATH"
   role            = aws_iam_role.agency_role.arn
   
   # Set the IAM policy for the user to allow file uploads to S3
