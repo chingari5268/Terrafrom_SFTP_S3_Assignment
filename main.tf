@@ -32,8 +32,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "agency_bucket_lifecycle" {
   }
 }
 
-
-
 # Create the IAM roles and policies for each agency
 resource "aws_iam_role" "agency_role" {
   name  = "${var.agencies}-role"
@@ -101,7 +99,7 @@ resource "aws_transfer_server" "sftp" {
 resource "aws_transfer_user" "sftp_user" {
   server_id       = aws_transfer_server.sftp.id
   user_name       = "${var.agencies}-user"
-  home_directory  = "/${aws_s3_bucket.agency_bucket.bucket}"
+  home_directory  = "/${aws_s3_bucket.agency_bucket.id}"
   role            = aws_iam_role.agency_role.arn
   depends_on = [
     aws_s3_bucket.agency_bucket
