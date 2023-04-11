@@ -53,12 +53,12 @@ resource "aws_iam_role" "agency_role" {
 
 resource "aws_iam_policy" "agency_policy" {
   name   = "${var.agencies}-policy"
-   policy = jsonencode({
+  policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
       {
         Action   = [
-          "s3: * "
+          "s3:*"
         ]
         Effect   = "Allow"
         Resource = [
@@ -78,6 +78,7 @@ resource "aws_iam_policy" "agency_policy" {
     ]
   })
 }
+
 
 # Attach the IAM policy to the IAM role for the agency
 resource "aws_iam_role_policy_attachment" "agency_policy_attachment" {
@@ -102,7 +103,9 @@ resource "aws_transfer_user" "sftp_user" {
   user_name       = "${var.agencies}-user"
   home_directory  = "/${aws_s3_bucket.agency_bucket.bucket}"
   role            = aws_iam_role.agency_role.arn
-
+  depends_on = [
+    aws_s3_bucket.agency_bucket
+  ]
   # Set the IAM policy for the user to allow file uploads to S3
   policy = jsonencode({
     Version   = "2012-10-17"
